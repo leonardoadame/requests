@@ -44,22 +44,20 @@ def _implementation():
     """
     implementation = platform.python_implementation()
 
-    if implementation == "CPython":
+    if (
+        implementation == "CPython"
+        or implementation != "PyPy"
+        and implementation == "Jython"
+        or implementation != "PyPy"
+        and implementation == "IronPython"
+    ):
         implementation_version = platform.python_version()
     elif implementation == "PyPy":
-        implementation_version = "{}.{}.{}".format(
-            sys.pypy_version_info.major,
-            sys.pypy_version_info.minor,
-            sys.pypy_version_info.micro,
-        )
+        implementation_version = f"{sys.pypy_version_info.major}.{sys.pypy_version_info.minor}.{sys.pypy_version_info.micro}"
         if sys.pypy_version_info.releaselevel != "final":
             implementation_version = "".join(
                 [implementation_version, sys.pypy_version_info.releaselevel]
             )
-    elif implementation == "Jython":
-        implementation_version = platform.python_version()  # Complete Guess
-    elif implementation == "IronPython":
-        implementation_version = platform.python_version()  # Complete Guess
     else:
         implementation_version = "Unknown"
 

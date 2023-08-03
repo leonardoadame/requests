@@ -5,6 +5,7 @@ requests.sessions
 This module provides a Session object to manage and persist settings across
 requests (cookies, auth, proxies).
 """
+
 import os
 import sys
 import time
@@ -52,10 +53,7 @@ from .utils import (  # noqa: F401
 )
 
 # Preferred clock, based on which one is more accurate on a given system.
-if sys.platform == "win32":
-    preferred_clock = time.perf_counter
-else:
-    preferred_clock = time.time
+preferred_clock = time.perf_counter if sys.platform == "win32" else time.time
 
 
 def merge_setting(request_setting, session_setting, dict_class=OrderedDict):
@@ -585,10 +583,8 @@ class Session(SessionRedirectMixin):
             "timeout": timeout,
             "allow_redirects": allow_redirects,
         }
-        send_kwargs.update(settings)
-        resp = self.send(prep, **send_kwargs)
-
-        return resp
+        send_kwargs |= settings
+        return self.send(prep, **send_kwargs)
 
     def get(self, url, **kwargs):
         r"""Sends a GET request. Returns :class:`Response` object.
@@ -722,7 +718,7 @@ class Session(SessionRedirectMixin):
         if allow_redirects:
             # Redirect resolving generator.
             gen = self.resolve_redirects(r, request, **kwargs)
-            history = [resp for resp in gen]
+            history = list(gen)
         else:
             history = []
 
@@ -810,8 +806,7 @@ class Session(SessionRedirectMixin):
             self.adapters[key] = self.adapters.pop(key)
 
     def __getstate__(self):
-        state = {attr: getattr(self, attr, None) for attr in self.__attrs__}
-        return state
+        return {attr: getattr(self, attr, None) for attr in self.__attrs__}
 
     def __setstate__(self, state):
         for attr, value in state.items():

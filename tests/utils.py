@@ -14,4 +14,4 @@ def override_environ(**kwargs):
         yield
     finally:
         os.environ.clear()
-        os.environ.update(save_env)
+        os.environ |= save_env

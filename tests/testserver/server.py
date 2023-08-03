@@ -12,11 +12,11 @@ def consume_socket_content(sock, timeout=0.5):
         if not more_to_read:
             break
 
-        new_content = sock.recv(chunks)
-        if not new_content:
-            break
+        if new_content := sock.recv(chunks):
+            content += new_content
 
-        content += new_content
+        else:
+            break
 
     return content
 
@@ -106,10 +106,7 @@ class Server(threading.Thread):
             ready, _, _ = select.select(
                 [self.server_sock], [], [], self.WAIT_EVENT_TIMEOUT
             )
-            if not ready:
-                return None
-
-            return self.server_sock.accept()[0]
+            return None if not ready else self.server_sock.accept()[0]
         except OSError:
             return None
 
@@ -122,11 +119,10 @@ class Server(threading.Thread):
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is None:
             self.stop_event.wait(self.WAIT_EVENT_TIMEOUT)
-        else:
-            if self.wait_to_close_event:
-                # avoid server from waiting for event timeouts
-                # if an exception is found in the main thread
-                self.wait_to_close_event.set()
+        elif self.wait_to_close_event:
+            # avoid server from waiting for event timeouts
+            # if an exception is found in the main thread
+            self.wait_to_close_event.set()
 
         # ensure server thread doesn't get stuck waiting for connections
         self._close_server_sock_ignore_errors()

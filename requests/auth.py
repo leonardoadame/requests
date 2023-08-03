@@ -59,11 +59,7 @@ def _basic_auth_str(username, password):
     if isinstance(password, str):
         password = password.encode("latin1")
 
-    authstr = "Basic " + to_native_string(
-        b64encode(b":".join((username, password))).strip()
-    )
-
-    return authstr
+    return f'Basic {to_native_string(b64encode(b":".join((username, password))).strip())}'
 
 
 class AuthBase:
@@ -135,12 +131,9 @@ class HTTPDigestAuth(AuthBase):
         opaque = self._thread_local.chal.get("opaque")
         hash_utf8 = None
 
-        if algorithm is None:
-            _algorithm = "MD5"
-        else:
-            _algorithm = algorithm.upper()
+        _algorithm = "MD5" if algorithm is None else algorithm.upper()
         # lambdas assume digest modules are imported at the top level
-        if _algorithm == "MD5" or _algorithm == "MD5-SESS":
+        if _algorithm in ["MD5", "MD5-SESS"]:
 
             def md5_utf8(x):
                 if isinstance(x, str):

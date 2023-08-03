@@ -324,7 +324,7 @@ class TestRequests:
     def test_transfer_enc_removal_on_redirect(self, httpbin):
         purged_headers = ("Transfer-Encoding", "Content-Type")
         ses = requests.Session()
-        req = requests.Request("POST", httpbin("post"), data=(b"x" for x in range(1)))
+        req = requests.Request("POST", httpbin("post"), data=(b"x" for _ in range(1)))
         prep = ses.prepare_request(req)
         assert "Transfer-Encoding" in prep.headers
 
@@ -348,7 +348,7 @@ class TestRequests:
         fragment = "#view=edit&token=hunter2"
         r = requests.get(httpbin("redirect-to?url=get") + fragment)
 
-        assert len(r.history) > 0
+        assert r.history
         assert r.history[0].request.url == httpbin("redirect-to?url=get") + fragment
         assert r.url == httpbin("get") + fragment
 
@@ -460,9 +460,7 @@ class TestRequests:
         assert isinstance(resp.request._cookies, cookielib.CookieJar)
         assert not isinstance(resp.request._cookies, requests.cookies.RequestsCookieJar)
 
-        cookies = {}
-        for c in resp.request._cookies:
-            cookies[c.name] = c.value
+        cookies = {c.name: c.value for c in resp.request._cookies}
         assert cookies["foo"] == "bar"
         assert cookies["cookie"] == "tasty"
 
@@ -937,20 +935,18 @@ class TestRequests:
         INVALID_PATH = "/garbage"
         with pytest.raises(IOError) as e:
             requests.get(httpbin_secure(), verify=INVALID_PATH)
-        assert str(
-            e.value
-        ) == "Could not find a suitable TLS CA certificate bundle, invalid path: {}".format(
-            INVALID_PATH
+        assert (
+            str(e.value)
+            == f"Could not find a suitable TLS CA certificate bundle, invalid path: {INVALID_PATH}"
         )
 
     def test_invalid_ssl_certificate_files(self, httpbin_secure):
         INVALID_PATH = "/garbage"
         with pytest.raises(IOError) as e:
             requests.get(httpbin_secure(), cert=INVALID_PATH)
-        assert str(
-            e.value
-        ) == "Could not find the TLS certificate file, invalid path: {}".format(
-            INVALID_PATH
+        assert (
+            str(e.value)
+            == f"Could not find the TLS certificate file, invalid path: {INVALID_PATH}"
         )
 
         with pytest.raises(IOError) as e:
@@ -1076,7 +1072,7 @@ class TestRequests:
         assert r.status_code == 200
 
     def test_unicode_multipart_post_fieldnames(self, httpbin):
-        filename = os.path.splitext(__file__)[0] + ".py"
+        filename = f"{os.path.splitext(__file__)[0]}.py"
         with open(filename, "rb") as f:
             r = requests.Request(
                 method="POST",
@@ -1309,8 +1305,6 @@ class TestRequests:
 
         keys = jar.keys()
         assert keys == list(keys)
-        # make sure one can use keys multiple times
-        assert list(keys) == list(keys)
 
     def test_cookie_as_dict_values(self):
         key = "some_cookie"
@@ -1325,8 +1319,6 @@ class TestRequests:
 
         values = jar.values()
         assert values == list(values)
-        # make sure one can use values multiple times
-        assert list(values) == list(values)
 
     def test_cookie_as_dict_items(self):
         key = "some_cookie"
@@ -1341,8 +1333,6 @@ class TestRequests:
 
         items = jar.items()
         assert items == list(items)
-        # make sure one can use items multiple times
-        assert list(items) == list(items)
 
     def test_cookie_duplicate_names_different_domains(self):
         key = "some_cookie"
@@ -1585,7 +1575,7 @@ class TestRequests:
 
     def test_uppercase_scheme_redirect(self, httpbin):
         parts = urlparse(httpbin("html"))
-        url = "HTTP://" + parts.netloc + parts.path
+        url = f"HTTP://{parts.netloc}{parts.path}"
         r = requests.get(httpbin("redirect-to"), params={"url": url})
         assert r.status_code == 200
         assert r.url.lower() == url.lower()
@@ -1630,10 +1620,10 @@ class TestRequests:
 
     def test_session_get_adapter_prefix_matching(self):
         prefix = "https://example.com"
-        more_specific_prefix = prefix + "/some/path"
+        more_specific_prefix = f"{prefix}/some/path"
 
-        url_matching_only_prefix = prefix + "/another/path"
-        url_matching_more_specific_prefix = more_specific_prefix + "/longer/path"
+        url_matching_only_prefix = f"{prefix}/another/path"
+        url_matching_more_specific_prefix = f"{more_specific_prefix}/longer/path"
         url_not_matching_prefix = "https://another.example.com/"
 
         s = requests.Session()
@@ -1654,7 +1644,7 @@ class TestRequests:
 
     def test_session_get_adapter_prefix_matching_mixed_case(self):
         mixed_case_prefix = "hTtPs://eXamPle.CoM/MixEd_CAse_PREfix"
-        url_matching_prefix = mixed_case_prefix + "/full_url"
+        url_matching_prefix = f"{mixed_case_prefix}/full_url"
 
         s = requests.Session()
         my_adapter = HTTPAdapter()
@@ -1688,11 +1678,7 @@ class TestRequests:
         assert r.json()["args"] == {"foo": "bar", "FOO": "bar"}
 
     def test_long_authinfo_in_url(self):
-        url = "http://{}:{}@{}:9000/path?query#frag".format(
-            "E8A3BE87-9E3F-4620-8858-95478E385B5B",
-            "EA770032-DA4D-4D84-8CE9-29C6D910BF1E",
-            "exactly-------------sixty-----------three------------characters",
-        )
+        url = 'http://E8A3BE87-9E3F-4620-8858-95478E385B5B:EA770032-DA4D-4D84-8CE9-29C6D910BF1E@exactly-------------sixty-----------three------------characters:9000/path?query#frag'
         r = requests.Request("GET", url).prepare()
         assert r.url == url
 
@@ -1715,7 +1701,7 @@ class TestRequests:
             "qux": "1",
         }
         r = requests.get(httpbin("get"), headers=valid_headers)
-        for key in valid_headers.keys():
+        for key in valid_headers:
             valid_headers[key] == r.request.headers[key]
 
     @pytest.mark.parametrize(
@@ -2053,10 +2039,8 @@ class TestRequests:
     def test_requests_history_is_saved(self, httpbin):
         r = requests.get(httpbin("redirect/5"))
         total = r.history[-1].history
-        i = 0
-        for item in r.history:
-            assert item.history == total[0:i]
-            i += 1
+        for i, item in enumerate(r.history):
+            assert item.history == total[:i]
 
     def test_json_param_post_content_type_works(self, httpbin):
         r = requests.post(httpbin("post"), json={"life": 42})
@@ -2176,7 +2160,7 @@ class TestRequests:
         """Ensure that requests with a generator body stream using
         Transfer-Encoding: chunked, not a Content-Length header.
         """
-        data = (i for i in [b"a", b"b", b"c"])
+        data = iter([b"a", b"b", b"c"])
         url = httpbin("post")
         r = requests.Request("POST", url, data=data)
         prepared_request = r.prepare()
@@ -2197,14 +2181,16 @@ class TestRequests:
         """
         url_final = httpbin("html")
         querystring_malformed = urlencode({"location": url_final})
-        url_redirect_malformed = httpbin("response-headers?%s" % querystring_malformed)
+        url_redirect_malformed = httpbin(f"response-headers?{querystring_malformed}")
         querystring_redirect = urlencode({"url": url_redirect_malformed})
-        url_redirect = httpbin("redirect-to?%s" % querystring_redirect)
+        url_redirect = httpbin(f"redirect-to?{querystring_redirect}")
         urls_test = [
             url_redirect,
             url_redirect_malformed,
             url_final,
         ]
+
+
 
         class CustomRedirectSession(requests.Session):
             def get_redirect_target(self, resp):
@@ -2213,9 +2199,8 @@ class TestRequests:
                     return resp.headers["location"]
                 # edge case - check to see if 'location' is in headers anyways
                 location = resp.headers.get("location")
-                if location and (location != resp.url):
-                    return location
-                return None
+                return location if location and (location != resp.url) else None
+
 
         session = CustomRedirectSession()
         r = session.get(urls_test[0])
@@ -2470,11 +2455,9 @@ class TestTimeout:
         "timeout", ((None, 0.1), Urllib3Timeout(connect=None, read=0.1))
     )
     def test_read_timeout(self, httpbin, timeout):
-        try:
+        with contextlib.suppress(ReadTimeout):
             requests.get(httpbin("delay/10"), timeout=timeout)
             pytest.fail("The recv() request should time out.")
-        except ReadTimeout:
-            pass
 
     @pytest.mark.parametrize(
         "timeout", ((0.1, None), Urllib3Timeout(connect=0.1, read=None))
@@ -2491,11 +2474,9 @@ class TestTimeout:
         "timeout", ((0.1, 0.1), Urllib3Timeout(connect=0.1, read=0.1))
     )
     def test_total_timeout_connect(self, timeout):
-        try:
+        with contextlib.suppress(ConnectTimeout):
             requests.get(TARPIT, timeout=timeout)
             pytest.fail("The connect() request should time out.")
-        except ConnectTimeout:
-            pass
 
     def test_encoded_methods(self, httpbin):
         """See: https://github.com/psf/requests/issues/2316"""

@@ -22,8 +22,7 @@ def default_hooks():
 def dispatch_hook(key, hooks, hook_data, **kwargs):
     """Dispatches a hook dictionary on a given piece of data."""
     hooks = hooks or {}
-    hooks = hooks.get(key)
-    if hooks:
+    if hooks := hooks.get(key):
         if hasattr(hooks, "__call__"):
             hooks = [hooks]
         for hook in hooks:

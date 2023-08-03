@@ -57,7 +57,7 @@ class TestTestServer:
         with Server.basic_response_server() as (host, port):
             r = requests.get(f"http://{host}:{port}")
             assert r.status_code == 200
-            assert r.text == ""
+            assert not r.text
             assert r.headers["Content-Length"] == "0"
 
     def test_basic_waiting_server(self):
